@@ -1,6 +1,6 @@
 # ComfyUI-CaptionThis
 
-English | [简体中文](README_CN)
+English | [简体中文](README_CN.md)
 
 **ComfyUI-CaptionThis** is a flexible tool for generating image descriptions, supporting several powerful captioning models such as **Janus Pro** and **Florence2**, with plans to integrate more models like **JoyCaption** and other future developments. This tool aims to simplify workflows for **image-to-image tasks** and **LoRA dataset preparation** or similar fine-tuning processes, providing an intuitive way to describe individual images or batch process entire directories.
 
