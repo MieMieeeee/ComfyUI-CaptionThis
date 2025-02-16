@@ -5,9 +5,10 @@ from PIL import Image
 from transformers import AutoModelForCausalLM
 
 import folder_paths
+import comfy.model_management as mm
 
 from .janus.models import VLChatProcessor
-from .common import load_image_core, get_image_files, save_description, describe_images_core
+from .common import describe_images_core
 from .utils import mie_log
 
 MY_CATEGORY = "🐑 JanusProCaption"
@@ -20,7 +21,12 @@ class JanusProModelLoader:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "model_name": (["deepseek-ai/Janus-Pro-7B", "deepseek-ai/Janus-Pro-1B"],),
+                "model_name": (
+                    ["deepseek-ai/Janus-Pro-7B", "deepseek-ai/Janus-Pro-1B"],
+                    {
+                        "default": "deepseek-ai/Janus-Pro-7B"
+                    }
+                ),
             },
         }
 
@@ -31,7 +37,8 @@ class JanusProModelLoader:
 
     def load_model(self, model_name):
         the_model_path = os.path.join(MODELS_DIR, os.path.basename(model_name))
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        # device = "cuda" if torch.cuda.is_available() else "cpu"
+        device = mm.get_torch_device()
 
         if not os.path.exists(the_model_path):
             mie_log(f"Local model {model_name} not found at {the_model_path}, download from huggingface")
@@ -141,6 +148,9 @@ class JanusProDescribeImage:
                     "min": 1,
                     "max": 2048
                 }),
+                "keep_model_loaded": ("BOOLEAN", {
+                    "default": True,
+                }),
             },
         }
 
@@ -149,8 +159,14 @@ class JanusProDescribeImage:
     FUNCTION = "describe_image"
     CATEGORY = MY_CATEGORY
 
-    def describe_image(self, model, image, question, seed, temperature, top_p, max_new_tokens):
+    def describe_image(self, model, image, question, seed, temperature, top_p, max_new_tokens, keep_model_loaded):
         answer = describe_single_image(image, model, question, seed, temperature, top_p, max_new_tokens)
+
+        if not keep_model_loaded:
+            print("Offloading model...")
+            model.to(mm.unet_offload_device())
+            mm.soft_empty_cache()
+
         return (answer,)
 
     @classmethod
@@ -189,6 +205,9 @@ class JanusProCaptionImageUnderDirectory:
                     "min": 1,
                     "max": 2048
                 }),
+                "keep_model_loaded": ("BOOLEAN", {
+                    "default": True,
+                }),
                 "save_to_new_directory": ("BOOLEAN", {
                     "default": False,
                 }),
@@ -204,10 +223,17 @@ class JanusProCaptionImageUnderDirectory:
     CATEGORY = MY_CATEGORY
 
     def describe_images(self, model, directory, question, seed, temperature, top_p, max_new_tokens,
-                        save_to_new_directory, save_directory):
-        mie_log(f"Describing images in {directory} and save to {save_directory if save_to_new_directory else directory}")
-        return describe_images_core(directory, save_to_new_directory, save_directory, describe_single_image,
-                                    model, question, seed, temperature, top_p, max_new_tokens)
+                        save_to_new_directory, save_directory, keep_model_loaded):
+        mie_log(
+            f"Describing images in {directory} and save to {save_directory if save_to_new_directory else directory}")
+        result = describe_images_core(directory, save_to_new_directory, save_directory, describe_single_image,
+                                      model, question, seed, temperature, top_p, max_new_tokens)
+        if not keep_model_loaded:
+            print("Offloading model...")
+            model.to(mm.unet_offload_device())
+            mm.soft_empty_cache()
+
+        return result
 
     @classmethod
     def IS_CHANGED(cls, seed, **kwargs):

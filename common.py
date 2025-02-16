@@ -1,6 +1,7 @@
 import os
 import torch
 import imghdr
+import hashlib
 import numpy as np
 from glob import glob
 from PIL import Image
@@ -85,3 +86,14 @@ def describe_images_core(directory, save_to_new_directory, new_directory, descri
     the_log_message = f"Described {len(image_files)} images in {directory}."
     mie_log(the_log_message)
     return the_log_message,
+
+
+def hash_seed(seed):
+    # Convert the seed to a string and then to bytes
+    seed_bytes = str(seed).encode('utf-8')
+    # Create a SHA-256 hash of the seed bytes
+    hash_object = hashlib.sha256(seed_bytes)
+    # Convert the hash to an integer
+    hashed_seed = int(hash_object.hexdigest(), 16)
+    # Ensure the hashed seed is within the acceptable range for set_seed
+    return hashed_seed % (2 ** 32)

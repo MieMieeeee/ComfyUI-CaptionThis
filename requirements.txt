@@ -1,7 +1,10 @@
 torch
-transformers>=4.38.2
+transformers>=4.39.0
 timm>=0.9.16
-accelerate
 sentencepiece
 attrdict
 einops
+matplotlib
+pillow>= 10.2.0
+peft
+accelerate>=0.26.0
