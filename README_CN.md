@@ -15,7 +15,7 @@
 
 ## 工作流程
 
-在使用工具时，需要一个 **ShowText** 或 **DisplayText** 节点来显示命令的执行结果。然而，由于 ComfyUI 当前未提供原生支持此类节点，我们推荐使用自定义实现的 **MieNodes**（[GitHub 仓库](https://github.com/MieMieeeee/ComfyUI-MieNodes)）。该工具安装简单，无需依赖，且包括许多与描述生成相关的文件操作节点。
+在使用工具时，需要一个 **ShowText** 或 **DisplayText** 节点来显示命令的执行结果。然而，由于 ComfyUI 当前未提供原生支持此类节点，推荐使用我实现的 **MieNodes**（[GitHub 仓库](https://github.com/MieMieeeee/ComfyUI-MieNodes)）。该工具安装简单，无需依赖，且包括许多与描述生成相关的文件操作节点。
 
 ### 使用 Janus Pro 描述单张图像
 ![JanusPro_Describe_Image](Images/JanusPro_Describe_Image.png)
@@ -50,7 +50,7 @@
 
 ## 模型下载
 
-目前，所有模型都从 Hugging Face 下载（如果指定了环境变量 `HF_HOME`，则从 `hf_mirror` 镜像下载）。当然，您也可以手动下载并放置到下面指定的目录中。
+目前，所有模型都从 HuggingFace 下载（如果指定了环境变量 `HF_ENDPOINT=https://hf-mirror.com`，则从 `hf_mirror` 镜像下载）。当然，您也可以手动下载并放置到下面指定的目录中。
 
 ### Janus Pro 模型
 - 下载模型：
