@@ -1,0 +1,153 @@
+{
+  "last_node_id": 19,
+  "last_link_id": 18,
+  "nodes": [
+    {
+      "id": 11,
+      "type": "ShowAnything|Mie",
+      "pos": [
+        4620,
+        260
+      ],
+      "size": [
+        250,
+        230
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "type": "*",
+          "link": 18,
+          "label": "anything"
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ShowAnything|Mie"
+      },
+      "widgets_values": [
+        "A blurry, abstract background with vertical lines that create a sense of depth and dimension. the lines are arranged in a horizontal pattern, with varying shades of blue, green, and brown. the colors blend together seamlessly, creating a visually striking effect. the image has a soft, dreamy quality, with smooth, glossy texture. the overall effect is reminiscent of modern art, with a focus on smooth lines and a slightly blurred background."
+      ]
+    },
+    {
+      "id": 18,
+      "type": "Florence2ModelLoader|Mie",
+      "pos": [
+        3720,
+        260
+      ],
+      "size": [
+        315,
+        106
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MIE_FLORENCE2_MODEL",
+          "links": [
+            17
+          ],
+          "label": "model"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Florence2ModelLoader|Mie"
+      },
+      "widgets_values": [
+        "MiaoshouAI/Florence-2-base-PromptGen-v2.0",
+        "fp16",
+        "sdpa"
+      ]
+    },
+    {
+      "id": 19,
+      "type": "Florence2CaptionImageUnderDirectory|Mie",
+      "pos": [
+        4060,
+        260
+      ],
+      "size": [
+        541.800048828125,
+        274
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MIE_FLORENCE2_MODEL",
+          "link": 17,
+          "label": "model"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "log",
+          "type": "STRING",
+          "links": [
+            18
+          ],
+          "label": "log",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "Florence2CaptionImageUnderDirectory|Mie"
+      },
+      "widgets_values": [
+        "X://path/to/files",
+        "more_detailed_caption",
+        42,
+        "randomize",
+        1024,
+        3,
+        true,
+        true,
+        false,
+        ""
+      ]
+    }
+  ],
+  "links": [
+    [
+      17,
+      18,
+      0,
+      19,
+      0,
+      "MIE_FLORENCE2_MODEL"
+    ],
+    [
+      18,
+      19,
+      0,
+      11,
+      0,
+      "*"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.0152559799478236,
+      "offset": [
+        -3454.959345467739,
+        -14.270341031214743
+      ]
+    },
+    "node_versions": {
+      "comfyui_mienodes": "1.0.0",
+      "ComfyUI-CaptionThis": "d1df9294b266716febfa8644c1df0ad326f80eb3"
+    }
+  },
+  "version": 0.4
+}
