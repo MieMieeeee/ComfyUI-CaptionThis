@@ -50,7 +50,7 @@ A **ShowText** or **DisplayText** node is required to display the results of com
 
 ## Model Download
 
-Currently, all models are downloaded directly from Hugging Face (or via `hf_mirror` if you specify the environment variable `HF_HOME`). Alternatively, you can manually download the models and place them in the directories outlined below.
+Currently, all models are downloaded directly from HuggingFace (or via `hf_mirror` if you specify the environment variable `HF_ENDPOINT=https://hf-mirror.com`). Alternatively, you can manually download the models and place them in the directories outlined below.
 
 ### Janus Pro
 - Download the models:
