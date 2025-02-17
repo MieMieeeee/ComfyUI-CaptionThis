@@ -1,0 +1,202 @@
+{
+  "last_node_id": 15,
+  "last_link_id": 13,
+  "nodes": [
+    {
+      "id": 15,
+      "type": "JanusProModelLoader|Mie",
+      "pos": [
+        3720,
+        250
+      ],
+      "size": [
+        315,
+        58
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "model",
+          "type": "MIE_JANUS_MODEL",
+          "links": [
+            13
+          ],
+          "label": "model"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "JanusProModelLoader|Mie"
+      },
+      "widgets_values": [
+        "deepseek-ai/Janus-Pro-7B"
+      ]
+    },
+    {
+      "id": 11,
+      "type": "ShowAnything|Mie",
+      "pos": [
+        4520,
+        250
+      ],
+      "size": [
+        250,
+        230
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "anything",
+          "type": "*",
+          "link": 12,
+          "label": "anything"
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "ShowAnything|Mie"
+      },
+      "widgets_values": [
+        "A blurry, abstract background with vertical lines that create a sense of depth and dimension. the lines are arranged in a horizontal pattern, with varying shades of blue, green, and brown. the colors blend together seamlessly, creating a visually striking effect. the image has a soft, dreamy quality, with smooth, glossy texture. the overall effect is reminiscent of modern art, with a focus on smooth lines and a slightly blurred background."
+      ]
+    },
+    {
+      "id": 14,
+      "type": "JanusProDescribeImage|Mie",
+      "pos": [
+        4080,
+        250
+      ],
+      "size": [
+        400,
+        240
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MIE_JANUS_MODEL",
+          "link": 13,
+          "label": "model"
+        },
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 11,
+          "label": "image"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "text",
+          "type": "STRING",
+          "links": [
+            12
+          ],
+          "label": "text",
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "JanusProDescribeImage|Mie"
+      },
+      "widgets_values": [
+        "Describe this image in detail.",
+        42,
+        "randomize",
+        0.1,
+        0.95,
+        512,
+        true
+      ]
+    },
+    {
+      "id": 10,
+      "type": "LoadImage",
+      "pos": [
+        3720,
+        370
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            11
+          ],
+          "label": "IMAGE"
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null,
+          "label": "MASK"
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "mie.png",
+        "image"
+      ]
+    }
+  ],
+  "links": [
+    [
+      11,
+      10,
+      0,
+      14,
+      1,
+      "IMAGE"
+    ],
+    [
+      12,
+      14,
+      0,
+      11,
+      0,
+      "*"
+    ],
+    [
+      13,
+      15,
+      0,
+      14,
+      0,
+      "MIE_JANUS_MODEL"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 1.0152559799478236,
+      "offset": [
+        -3454.959345467739,
+        -14.270341031214743
+      ]
+    },
+    "node_versions": {
+      "ComfyUI-CaptionThis": "d1df9294b266716febfa8644c1df0ad326f80eb3",
+      "comfyui_mienodes": "1.0.0",
+      "comfy-core": "0.3.14"
+    }
+  },
+  "version": 0.4
+}
