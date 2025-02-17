@@ -6,6 +6,7 @@ import numpy as np
 from glob import glob
 from PIL import Image
 
+import comfy.model_management as mm
 from nodes import node_helpers, ImageSequence, ImageOps
 from .utils import mie_log
 
@@ -97,3 +98,26 @@ def hash_seed(seed):
     hashed_seed = int(hash_object.hexdigest(), 16)
     # Ensure the hashed seed is within the acceptable range for set_seed
     return hashed_seed % (2 ** 32)
+
+
+def bf16_or_fp16():
+    try:
+        torch.zeros(1, dtype=torch.bfloat16, device=mm.get_torch_device())
+        return torch.bfloat16
+    except RuntimeError:
+        return torch.float16
+
+
+def image_to_pil_image(image):
+    # ComfyUI中的图像格式是 BCHW (Batch, Channel, Height, Width)
+    if len(image.shape) == 4:  # BCHW format
+        if image.shape[0] == 1:
+            image = image.squeeze(0)  # 移除batch维度，现在是 [H, W, C]
+
+    # 确保值范围在[0,1]之间并转换为uint8
+    image = (torch.clamp(image, 0, 1) * 255).cpu().numpy().astype(np.uint8)
+
+    # 转换为PIL图像
+    pil_image = Image.fromarray(image, mode='RGB')
+
+    return pil_image
