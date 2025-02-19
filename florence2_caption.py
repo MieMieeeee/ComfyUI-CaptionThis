@@ -149,8 +149,7 @@ class Florence2ModelLoader:
         device = mm.get_torch_device()
         dtype = {"bf16": torch.bfloat16, "fp16": torch.float16, "fp32": torch.float32}[precision]
 
-        model_name = model_name.rsplit('/', 1)[-1]
-        model_path = os.path.join(model_directory, model_name)
+        model_path = os.path.join(model_directory, model_name.rsplit('/', 1)[-1])
 
         if not os.path.exists(model_path):
             mie_log(f"Downloading Florence2 model to: {model_path}")
