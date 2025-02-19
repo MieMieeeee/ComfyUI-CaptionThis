@@ -235,7 +235,7 @@ class Florence2CaptionImageUnderDirectory:
                 "save_to_new_directory": ("BOOLEAN", {"default": False, }),
             },
             "optional": {
-                "save_directory": ("STRING",),
+                "save_directory": ("STRING", {"default": ""}),
             }
         }
 
