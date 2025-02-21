@@ -72,16 +72,16 @@ Currently, all models are downloaded directly from HuggingFace (or via `hf_mirro
   - [Florence-2-large-PromptGen-v1.5](https://huggingface.co/MiaoshouAI/Florence-2-large-PromptGen-v1.5)
   - [Florence-2-base-PromptGen-v2.0](https://huggingface.co/MiaoshouAI/Florence-2-base-PromptGen-v2.0)
   - [Florence-2-large-PromptGen-v2.0](https://huggingface.co/MiaoshouAI/Florence-2-large-PromptGen-v2.0)
-- Place the models in the directory `ComfyUI/models/Florence2/` as follows:
+- Place the models in the directory `ComfyUI/models/LLM/` as follows:
   ```
-  ComfyUI/models/Florence2/Florence-2-base/
-  ComfyUI/models/Florence2/Florence-2-base-ft/
-  ComfyUI/models/Florence2/Florence-2-large/
-  ComfyUI/models/Florence2/Florence-2-large-ft/
-  ComfyUI/models/Florence2/Florence-2-base-PromptGen-v1.5/
-  ComfyUI/models/Florence2/Florence-2-large-PromptGen-v1.5/
-  ComfyUI/models/Florence2/Florence-2-base-PromptGen-v2.0/
-  ComfyUI/models/Florence2/Florence-2-large-PromptGen-v2.0/
+  ComfyUI/models/LLM/Florence-2-base/
+  ComfyUI/models/LLM/Florence-2-base-ft/
+  ComfyUI/models/LLM/Florence-2-large/
+  ComfyUI/models/LLM/Florence-2-large-ft/
+  ComfyUI/models/LLM/Florence-2-base-PromptGen-v1.5/
+  ComfyUI/models/LLM/Florence-2-large-PromptGen-v1.5/
+  ComfyUI/models/LLM/Florence-2-base-PromptGen-v2.0/
+  ComfyUI/models/LLM/Florence-2-large-PromptGen-v2.0/
   ```
 
 ---
