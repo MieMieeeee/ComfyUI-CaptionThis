@@ -72,16 +72,16 @@
   - [Florence-2-large-PromptGen-v1.5](https://huggingface.co/MiaoshouAI/Florence-2-large-PromptGen-v1.5)
   - [Florence-2-base-PromptGen-v2.0](https://huggingface.co/MiaoshouAI/Florence-2-base-PromptGen-v2.0)
   - [Florence-2-large-PromptGen-v2.0](https://huggingface.co/MiaoshouAI/Florence-2-large-PromptGen-v2.0)
-- 将模型文件放置在目录 `ComfyUI/models/Florence2/` 中，路径结构如下：
+- 将模型文件放置在目录 `ComfyUI/models/LLM/` 中，路径结构如下：
   ```
-  ComfyUI/models/Florence2/Florence-2-base/
-  ComfyUI/models/Florence2/Florence-2-base-ft/
-  ComfyUI/models/Florence2/Florence-2-large/
-  ComfyUI/models/Florence2/Florence-2-large-ft/
-  ComfyUI/models/Florence2/Florence-2-base-PromptGen-v1.5/
-  ComfyUI/models/Florence2/Florence-2-large-PromptGen-v1.5/
-  ComfyUI/models/Florence2/Florence-2-base-PromptGen-v2.0/
-  ComfyUI/models/Florence2/Florence-2-large-PromptGen-v2.0/
+  ComfyUI/models/LLM/Florence-2-base/
+  ComfyUI/models/LLM/Florence-2-base-ft/
+  ComfyUI/models/LLM/Florence-2-large/
+  ComfyUI/models/LLM/Florence-2-large-ft/
+  ComfyUI/models/LLM/Florence-2-base-PromptGen-v1.5/
+  ComfyUI/models/LLM/Florence-2-large-PromptGen-v1.5/
+  ComfyUI/models/LLM/Florence-2-base-PromptGen-v2.0/
+  ComfyUI/models/LLM/Florence-2-large-PromptGen-v2.0/
   ```
 
 ---
