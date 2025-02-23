@@ -205,7 +205,7 @@ class Florence2DescribeImage:
         model.to(device)
         set_seed(hash_seed(seed))
 
-        out_result = describe_single_image(image.permute(0, 3, 1, 2), model, processor,
+        out_result = describe_single_image(image, model, processor,
                                            prompts_map.get(task, '<CAPTION>'),
                                            device, dtype, num_beams, max_new_tokens, do_sample)
 
