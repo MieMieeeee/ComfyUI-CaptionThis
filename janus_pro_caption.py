@@ -80,9 +80,9 @@ def describe_single_image(image, model, question, seed, temperature, top_p, max_
     image = (torch.clamp(image, 0, 1) * 255).cpu().numpy().astype(np.uint8)
 
     # 转换为PIL图像
-    if image.shape[2] == 4: 
+    if image.shape[0] == 4: 
         pil_image = Image.fromarray(image, mode='RGBA').convert('RGB')
-    elif image.shape[2] == 3: 
+    elif image.shape[0] == 3: 
         pil_image = Image.fromarray(image, mode='RGB')
     else:
         raise ValueError("Unsupported image format.  Must be (H,W,C) and C must be 3 or 4")
