@@ -100,10 +100,9 @@ def hash_seed(seed):
 
 
 def image_to_pil_image(image):
-    if image.shape[0] == 4:
-        pil_image = Image.fromarray(image, mode='RGBA').convert('RGB')
-    elif image.shape[0] == 3:
-        pil_image = Image.fromarray(image, mode='RGB')
+    if len(image.shape) == 3 and image.shape[2] in [3, 4]:
+        mode = 'RGBA' if image.shape[2] == 4 else 'RGB'
+        pil_image = Image.fromarray(image, mode=mode).convert('RGB')
     else:
-        raise ValueError("Unsupported image format.  Must be (H,W,C) and C must be 3 or 4")
+        raise ValueError("Unsupported image format. Must be (H,W,C) and C must be 3 or 4")
     return pil_image
