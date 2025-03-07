@@ -14,7 +14,7 @@ from transformers.dynamic_module_utils import get_imports
 
 import folder_paths
 import comfy.model_management as mm
-from .common import hash_seed, mie_log, describe_images_core
+from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 model_directory = os.path.join(folder_paths.models_dir, "LLM")
@@ -84,7 +84,7 @@ def describe_single_image(image, model, processor, prompt, device, dtype, num_be
     image = (torch.clamp(image, 0, 1) * 255).cpu().numpy().astype(np.uint8)
 
     # 转换为PIL图像
-    pil_image = Image.fromarray(image, mode='RGB')
+    pil_image = image_to_pil_image(image)
 
     inputs = processor(text=prompt, images=pil_image, return_tensors="pt", do_rescale=False).to(dtype).to(
         device)

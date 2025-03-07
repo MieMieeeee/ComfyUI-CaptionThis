@@ -97,3 +97,13 @@ def hash_seed(seed):
     hashed_seed = int(hash_object.hexdigest(), 16)
     # Ensure the hashed seed is within the acceptable range for set_seed
     return hashed_seed % (2 ** 32)
+
+
+def image_to_pil_image(image):
+    if image.shape[0] == 4:
+        pil_image = Image.fromarray(image, mode='RGBA').convert('RGB')
+    elif image.shape[0] == 3:
+        pil_image = Image.fromarray(image, mode='RGB')
+    else:
+        raise ValueError("Unsupported image format.  Must be (H,W,C) and C must be 3 or 4")
+    return pil_image
