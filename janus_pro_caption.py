@@ -164,7 +164,7 @@ class JanusProDescribeImage:
 
         if not keep_model_loaded:
             print("Offloading model...")
-            model.to(mm.unet_offload_device())
+            model["model"].to(mm.unet_offload_device())
             mm.soft_empty_cache()
 
         return (answer,)
@@ -230,7 +230,7 @@ class JanusProCaptionImageUnderDirectory:
                                       model, question, seed, temperature, top_p, max_new_tokens)
         if not keep_model_loaded:
             print("Offloading model...")
-            model.to(mm.unet_offload_device())
+            model["model"].to(mm.unet_offload_device())
             mm.soft_empty_cache()
 
         return result
