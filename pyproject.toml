@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_caption_this"
 description = "Describe a single image or all images in a directory using models such as Janus Pro, Florence2, or JoyCaption (testing), with a particular focus on building datasets for training LoRA."
-version = "1.0.2"
+version = "1.0.3"
 license = { file = "LICENSE" }
 dependencies = []
 
