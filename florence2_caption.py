@@ -75,14 +75,6 @@ prompts_map = {
 
 def describe_single_image(image, model, processor, prompt, device, dtype, num_beams=3, max_new_tokens=1024,
                           do_sample=True):
-    # ComfyUI中的图像格式是 BCHW (Batch, Channel, Height, Width)
-    if len(image.shape) == 4:  # BCHW format
-        if image.shape[0] == 1:
-            image = image.squeeze(0)  # 移除batch维度，现在是 [H, W, C]
-
-    # 确保值范围在[0,1]之间并转换为uint8
-    image = (torch.clamp(image, 0, 1) * 255).cpu().numpy().astype(np.uint8)
-
     # 转换为PIL图像
     pil_image = image_to_pil_image(image)
 
@@ -98,9 +90,6 @@ def describe_single_image(image, model, processor, prompt, device, dtype, num_be
     )
 
     results = processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
-
-    print(results)
-    # cleanup the special tokens from the final list
 
     clean_results = str(results)
     clean_results = clean_results.replace('</s>', '')

@@ -100,9 +100,40 @@ def hash_seed(seed):
 
 
 def image_to_pil_image(image):
-    if len(image.shape) == 3 and image.shape[2] in [3, 4]:
-        mode = 'RGBA' if image.shape[2] == 4 else 'RGB'
-        pil_image = Image.fromarray(image, mode=mode).convert('RGB')
+    """
+    Convert a BCHW/CHW/HWC PyTorch Tensor or NumPy array to a PIL Image in RGB format.
+
+    Parameters:
+        image (torch.Tensor or np.ndarray): Input image.
+
+    Returns:
+        PIL.Image.Image: Converted PIL Image (RGB).
+    """
+    # Step 1: Handle BCHW (Batch, Channel, Height, Width)
+    if len(image.shape) == 4:  # Batch input
+        image = image[0]
+
+    # Step 2: Ensure image values are in [0, 255] and type is uint8
+    if isinstance(image, torch.Tensor):
+        image = torch.clamp(image, 0, 1)  # Clamp values to [0, 1]
+        image = (image * 255).byte().cpu().numpy()  # Convert to uint8 NumPy array
+    elif isinstance(image, np.ndarray):
+        image = np.clip(image, 0, 1)  # Clamp values to [0, 1]
+        image = (image * 255).astype(np.uint8)  # Convert to uint8
     else:
-        raise ValueError("Unsupported image format. Must be (H,W,C) and C must be 3 or 4")
+        raise TypeError(f"Unsupported input type {type(image)}. Expected torch.Tensor or numpy.ndarray.")
+
+    # Step 3: Handle [C, H, W] -> [H, W, C] conversion
+    if len(image.shape) == 3:
+        if image.shape[0] in [3, 4]:  # [C, H, W] format
+            image = np.transpose(image, (1, 2, 0))  # Convert to [H, W, C]
+        elif image.shape[2] not in [3, 4]:  # Invalid channels
+            raise ValueError(f"Unsupported channel size: {image.shape[2]}. Must be 3 (RGB) or 4 (RGBA).")
+
+    # Step 4: Convert to PIL Image
+    mode = {3: 'RGB', 4: 'RGBA'}.get(image.shape[2])
+    if mode is None:
+        raise ValueError(f"Unsupported channel size: {image.shape[2]}. Must be 3 (RGB) or 4 (RGBA).")
+    pil_image = Image.fromarray(image, mode=mode).convert('RGB')  # Always convert to RGB
+
     return pil_image

@@ -71,14 +71,6 @@ def describe_single_image(image, model, question, seed, temperature, top_p, max_
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
 
-    # ComfyUI中的图像格式是 BCHW (Batch, Channel, Height, Width)
-    if len(image.shape) == 4:  # BCHW format
-        if image.shape[0] == 1:
-            image = image.squeeze(0)  # 移除batch维度，现在是 [H, W, C]
-
-    # 确保值范围在[0,1]之间并转换为uint8
-    image = (torch.clamp(image, 0, 1) * 255).cpu().numpy().astype(np.uint8)
-
     # 转换为PIL图像
     pil_image = image_to_pil_image(image)
 
@@ -163,7 +155,7 @@ class JanusProDescribeImage:
         answer = describe_single_image(image, model, question, seed, temperature, top_p, max_new_tokens)
 
         if not keep_model_loaded:
-            print("Offloading model...")
+            mie_log("Offloading model...")
             model["model"].to(mm.unet_offload_device())
             mm.soft_empty_cache()
 
