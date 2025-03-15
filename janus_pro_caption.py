@@ -206,6 +206,7 @@ class JanusProCaptionImageUnderDirectory:
             },
             "optional": {
                 "save_directory": ("STRING",),
+                "is_relative_path": ("BOOLEAN", {"default": False}),
             },
         }
 
@@ -215,7 +216,12 @@ class JanusProCaptionImageUnderDirectory:
     CATEGORY = MY_CATEGORY
 
     def describe_images(self, model, directory, question, seed, temperature, top_p, max_new_tokens,
-                        save_to_new_directory, save_directory, keep_model_loaded):
+                        save_to_new_directory, save_directory, keep_model_loaded, is_relative_path=False):
+
+        if is_relative_path:
+            directory = os.path.join(folder_paths.base_path, directory)
+            save_directory = os.path.join(folder_paths.base_path, save_directory) if save_directory else None
+
         mie_log(
             f"Describing images in {directory} and save to {save_directory if save_to_new_directory else directory}")
         result = describe_images_core(directory, save_to_new_directory, save_directory, describe_single_image,

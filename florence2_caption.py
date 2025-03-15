@@ -225,6 +225,7 @@ class Florence2CaptionImageUnderDirectory:
             },
             "optional": {
                 "save_directory": ("STRING", {"default": ""}),
+                "is_relative_path": ("BOOLEAN", {"default": False}),
             }
         }
 
@@ -234,7 +235,8 @@ class Florence2CaptionImageUnderDirectory:
     CATEGORY = MY_CATEGORY
 
     def describe_images(self, model, directory, task, num_beams, max_new_tokens,
-                        do_sample, seed, save_to_new_directory, save_directory, keep_model_loaded):
+                        do_sample, seed, save_to_new_directory, save_directory, keep_model_loaded,
+                        is_relative_path=False):
         device = mm.get_torch_device()
         processor = model['processor']
         dtype = model['dtype']
@@ -243,6 +245,10 @@ class Florence2CaptionImageUnderDirectory:
         set_seed(hash_seed(seed))
 
         task_prompt = prompts_map.get(task, '<CAPTION>')
+
+        if is_relative_path:
+            directory = os.path.join(folder_paths.base_path, directory)
+            save_directory = os.path.join(folder_paths.base_path, save_directory) if save_directory else None
 
         mie_log(
             f"Describing images in {directory} and save to {save_directory if save_to_new_directory else directory}")
