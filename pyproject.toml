@@ -1,7 +1,7 @@
 [project]
 name = "comfyui_caption_this"
 description = "Describe a single image or all images in a directory using models such as Janus Pro, Florence2, or JoyCaption (testing), with a particular focus on building datasets for training LoRA."
-version = "1.0.3"
+version = "1.0.4
 license = { file = "LICENSE" }
 dependencies = []
 
@@ -12,4 +12,4 @@ Repository = "https://github.com/MieMieeeee/ComfyUI-CaptionThis"
 [tool.comfy]
 PublisherId = "mie"
 DisplayName = "ComfyUI_CaptionThis"
-Icon = ""
+Icon = "https://github.com/MieMieeeee/ComfyUI-MieNodes/blob/2f617ba2539e8fd13a91fe790e6b5e9ae1718a58/images/channels4_profile.jpg?raw=true"
