@@ -1,6 +1,5 @@
 import os
 import torch
-import imghdr
 import hashlib
 import numpy as np
 from glob import glob
@@ -54,8 +53,25 @@ def load_image_core(image_path):
     return (output_image, output_mask)
 
 
+def is_image_file(file_path):
+    """
+    Check if a file is a valid image using Pillow.
+
+    Parameters:
+    - file_path (str): Path to the file.
+
+    Returns:
+    - bool: True if the file is a valid image, False otherwise.
+    """
+    try:
+        with Image.open(file_path) as img:
+            return img.format is not None  # Returns True if the image format is valid
+    except (IOError, FileNotFoundError):
+        return False
+
+
 def get_image_files(directory):
-    return [f for f in glob(os.path.join(directory, "*")) if os.path.isfile(f) and imghdr.what(f)]
+    return [f for f in glob(os.path.join(directory, "*")) if os.path.isfile(f) and is_image_file(f)]
 
 
 def save_description(image_file, description, directory_to_save=None):
