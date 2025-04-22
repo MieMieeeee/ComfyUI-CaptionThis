@@ -39,15 +39,28 @@ from typing import (
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from timm.layers import (
-    AttentionPoolLatent,
-    DropPath,
-    LayerType,
-    Mlp,
-    PatchDropout,
-    PatchEmbed,
-    resample_abs_pos_embed,
-)
+
+try:
+    from timm.layers import (
+        AttentionPoolLatent,
+        DropPath,
+        LayerType,
+        Mlp,
+        PatchDropout,
+        PatchEmbed,
+        resample_abs_pos_embed,
+    )
+except ImportError:
+    from timm.models.layers import (
+        AttentionPoolLatent,
+        DropPath,
+        LayerType,
+        Mlp,
+        PatchDropout,
+        PatchEmbed,
+        resample_abs_pos_embed,
+    )
+
 from timm.models._manipulate import checkpoint_seq, named_apply
 
 
