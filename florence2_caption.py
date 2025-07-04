@@ -16,6 +16,10 @@ import folder_paths
 import comfy.model_management as mm
 from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image
 
+import transformers
+
+from safetensors.torch import save_file
+
 script_directory = os.path.dirname(os.path.abspath(__file__))
 model_directory = os.path.join(folder_paths.models_dir, "LLM")
 os.makedirs(model_directory, exist_ok=True)
@@ -148,10 +152,13 @@ class Florence2ModelLoader:
                               local_dir_use_symlinks=False)
 
         mie_log(f"Florence2 using {attention} for attention")
-        with patch("transformers.dynamic_module_utils.get_imports",
-                   fixed_get_imports):  # workaround for unnecessary flash_attn requirement
-            model = AutoModelForCausalLM.from_pretrained(model_path, attn_implementation=attention, device_map=device,
-                                                         torch_dtype=dtype, trust_remote_code=True)
+
+        if transformers.__version__ < '4.51.0':
+            with patch("transformers.dynamic_module_utils.get_imports", fixed_get_imports): #workaround for unnecessary flash_attn requirement
+                 model = AutoModelForCausalLM.from_pretrained(model_path, attn_implementation=attention, torch_dtype=dtype,trust_remote_code=True)
+        else:
+            from .modeling_florence2 import Florence2ForConditionalGeneration
+            model = Florence2ForConditionalGeneration.from_pretrained(model_path, attn_implementation=attention, torch_dtype=dtype)
         processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
 
         florence2_model = {
