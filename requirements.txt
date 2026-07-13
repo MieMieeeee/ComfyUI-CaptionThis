@@ -1,7 +1,12 @@
+# See notes/TODO_V9_FIX_TRACK.md for context on the transformers upper bound.
+# Jan/2025: pin away from transformers 6.x until we have revalidated everything.
 torch
-transformers>=4.39.0,!=4.50.*
+transformers>=4.39.0,!=4.50.*,<6.0.0
 timm>=0.9.16
 sentencepiece
+# Janus code uses AttrDict from `attrdict`. `janus/__init__.py` monkey-patches
+# `collections.abc` into `collections` for Python 3.10+, so any `attrdict`
+# release works, but the package must be installed (some bundle envs skip it).
 attrdict
 einops
 matplotlib

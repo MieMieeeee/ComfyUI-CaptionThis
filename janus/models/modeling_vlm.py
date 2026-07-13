@@ -70,10 +70,18 @@ def model_name_to_cls(cls_name):
     return cls
 
 
+# NOTE(v9-compat): transformers >= 5.0 wraps every `PretrainedConfig` subclass
+# in `@dataclass(repr=False, kw_only=True)` via `__init_subclass__`. Declaring
+# `params: AttrDict = {}` at class level triggers
+#     ValueError: mutable default <class 'dict'> for field params is not allowed
+# because dataclass forbids mutable-default values unless paired with
+# `field(default_factory=...)`. We avoid that constraint by NOT exposing `params`
+# as a dataclass field at all; the per-instance `self.params = AttrDict(...)`
+# assignment in each `__init__` (below) is enough for downstream code, which
+
 class VisionConfig(PretrainedConfig):
     model_type = "vision"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -88,7 +96,6 @@ class VisionConfig(PretrainedConfig):
 class AlignerConfig(PretrainedConfig):
     model_type = "aligner"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -103,7 +110,6 @@ class AlignerConfig(PretrainedConfig):
 class GenVisionConfig(PretrainedConfig):
     model_type = "gen_vision"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -118,7 +124,6 @@ class GenVisionConfig(PretrainedConfig):
 class GenAlignerConfig(PretrainedConfig):
     model_type = "gen_aligner"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -133,7 +138,6 @@ class GenAlignerConfig(PretrainedConfig):
 class GenHeadConfig(PretrainedConfig):
     model_type = "gen_head"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
