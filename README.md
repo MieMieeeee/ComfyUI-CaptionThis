@@ -8,6 +8,7 @@
 
 ## Important Updates
 
+* **2026/07/27**: Fixed **Florence2** producing gibberish instead of real captions on **transformers 5.x** (V9). Root cause: the BART encoder/decoder weights were silently re-randomized during meta-device loading. Also fixed the **Janus Pro** load crash (`Tensor.item() cannot be called on meta tensors`, #19) and the **directory batch mode** failing to find image folders on Linux / NFS / Docker (#13). Recommended for everyone on a 5.x environment.
 * **2025/02/16**: Added support for the **Florence2** model.
 * **2025/02/15**: Added support for the **Janus Pro** model.
 

@@ -8,6 +8,7 @@
 
 ## 重要更新
 
+* **2026/07/27**: 修复了 **Florence2** 在 **transformers 5.x**(V9)环境下输出乱码而非真实描述的问题(根因:meta-device 加载时 BART 编解码器权重被静默重置为随机值)。同时修复了 **Janus Pro** 加载崩溃(`Tensor.item() cannot be called on meta tensors`,#19)以及**目录批量模式**在 Linux / NFS / Docker 下找不到图片文件夹的问题(#13)。使用 5.x 环境的用户强烈建议更新。
 * **2025/02/16**: 增加了对 **Florence2** 模型的支持。
 * **2025/02/15**: 增加了对 **Janus Pro** 模型的支持。
 
