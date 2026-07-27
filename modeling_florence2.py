@@ -557,7 +557,12 @@ class DaViT(nn.Module):
         assert self.num_stages == len(self.num_heads) == len(self.num_groups)
 
         num_stages = len(embed_dims)
-        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths)*2)]
+        # NOTE(v9-compat): pure-Python drop-path schedule. The original `torch.linspace(...).item()`
+        # form touches tensors during `__init__`, which raises under meta-device instantiation
+        # (transformers >= 5.0 `from_pretrained` / `init_empty_weights`). This mirrors the
+        # official microsoft/Florence-2 5.x compatibility patch and is numerically identical.
+        _n_dpr = sum(depths) * 2
+        dpr = [drop_path_rate * i / (_n_dpr - 1) for i in range(_n_dpr)]
 
         depth_offset = 0
         convs = []
@@ -1565,6 +1570,29 @@ class Florence2LanguagePreTrainedModel(PreTrainedModel):
     _supports_sdpa = True
 
     def _init_weights(self, module):
+        # NOTE(v9-compat): transformers >= 5.0 loads via meta-device + `init_empty_weights`,
+        # then materializes and runs `initialize_weights` -> `_init_weights` over the whole
+        # model. `mark_tied_weights_as_initialized` only sets the `_is_hf_initialized` flag on
+        # *parameters* (the tied targets), not on the *modules* that own them, so
+        # `PreTrainedModel._initialize_weights` (which checks the flag at the MODULE level)
+        # sees `Florence2LanguageModel`/encoder/decoder layers as "not initialized" and re-runs
+        # this method in-place, OVERWRITING freshly-loaded checkpoint weights with random
+        # values. The result: vision_tower loads fine but the entire BART encoder+decoder+embeds
+        # become random -> captions are gibberish (verified: teacher-forcing acc 0%, loss ~17).
+        #
+        # Fix: honor the per-parameter `_is_hf_initialized` flag the way transformers documents
+        # for remote-code models (see `PreTrainedModel._initialize_weights` docstring). If every
+        # direct parameter/buffer of this module is already hf-initialized, the weights came from
+        # the checkpoint and must NOT be re-randomized. Container modules with no own params
+        # (e.g. the top-level model) fall through and recurse normally.
+        own_params = list(module.parameters(recurse=False))
+        own_buffers = [b for b in module.buffers(recurse=False) if b is not None]
+        if own_params or own_buffers:
+            if all(getattr(p, "_is_hf_initialized", False) for p in own_params) and all(
+                getattr(b, "_is_hf_initialized", False) for b in own_buffers
+            ):
+                return
+
         std = self.config.init_std
         if isinstance(module, nn.Linear):
             module.weight.data.normal_(mean=0.0, std=std)

@@ -7,6 +7,81 @@
 
 ---
 
+## 0. RESOLVED (2026-07-27) — actual root cause & fix
+
+**The "rewrite the BART decoder" premise in this document was wrong.** The decoder,
+cache API, cache_position, 4-D mask, and weight-tying logic were all correct. The
+gibberish had a single, mundane root cause found by isolating where V8 and V9
+diverge on identical code + identical weights + identical image.
+
+### How it was found (decisive test: teacher-forcing)
+
+Feeding the model its own known-good caption as `labels` and measuring per-position
+accuracy. A healthy decoder predicts ~every token; the V9 decoder predicted 0/18.
+
+| Env | teacher-forcing acc | loss | caption |
+|---|---|---|---|
+| V8 (4.56.2) | **18/18 = 100%** | 0.354 | correct |
+| V9 (5.9.0)  | **0/18 = 0.0%**   | ~17   | gibberish |
+
+Since teacher-forcing does not use the cache or the generate loop, this **ruled out
+every cache/generation hypothesis in §4 and every option in §6 except A**, and
+narrowed the break to the decoder forward itself. Drilling one layer deeper:
+`decoder_hidden_states[0]` (the decoder embedding output, before any layer) already
+had cosine similarity ~0.007 between V8 and V9 — i.e. the divergence is at the very
+first embedding step, not in any attention layer.
+
+### The actual root cause
+
+A full per-parameter audit (`max|loaded - raw_checkpoint|`, cosine) against
+`model.safetensors` showed:
+
+- `vision_tower.*`: all 453 params OK (loaded correctly).
+- `language_model.*` (the entire BART encoder + decoder + shared + lm_head):
+  **all 212 params were random `_init_weights` values** (std 0.02 = `init_std`,
+  cosine ~0 with checkpoint). The model that generated captions was effectively
+  untrained.
+
+Why: under transformers >= 5.0, `from_pretrained` instantiates on the meta device
+then materializes and runs `PreTrainedModel._initialize_weights` -> `_init_weights`
+over the whole model. `mark_tied_weights_as_initialized` sets the `_is_hf_initialized`
+flag on **parameters** (the tied targets) but not on the **modules** that own them,
+and `_initialize_weights` checks the flag at the **module** level. So
+`Florence2LanguageModel` / its encoder & decoder layers read as "not initialized"
+and `_init_weights` re-randomized them **in place, after** the checkpoint weights
+had been loaded — overwriting them. The tying/keys and loading_info (0 missing
+keys) all looked correct; the destruction happened silently in the init pass.
+
+### The fix (2 small changes in `modeling_florence2.py`)
+
+1. **`Florence2LanguagePreTrainedModel._init_weights`**: honor the per-parameter
+   `_is_hf_initialized` flag — if every direct param/buffer of a module is already
+   hf-initialized, skip re-init. This is exactly the remote-code safety pattern
+   documented in transformers' own `_initialize_weights` docstring. (The guard is a
+   no-op on V8/4.x, where params don't carry the flag, so V8 is unaffected.)
+2. **`DaViT.__init__`**: replace `torch.linspace(...).item()` with a pure-Python
+   drop-path schedule, mirroring the official microsoft/Florence-2 5.x patch — the
+   `.item()` form raises under meta-device instantiation.
+
+### Verification (all 3 envs)
+
+| Env | teacher acc | weights vs ckpt | caption |
+|---|---|---|---|
+| V8.0      (4.56.2, GPU) | 100% | 665/665 cos>0.5 | correct (matches the V8 line in §1) |
+| V9.0      (5.9.0,  GPU) | 72%  | 665/665 cos>0.5 | correct |
+| V9.0_cu126(5.9.0,  CPU)| 72%  | 665/665 cos>0.5 | correct |
+
+(V8 hits 100% / V9 72% because V8 ties `lm_head` to `shared` exactly while V9 keeps
+the finetune-drifted `lm_head`; both produce correct captions. cu126 runs on CPU
+because its `torch 2.12.0+cu126` wheel has no kernels for the RTX 5080's sm_120 —
+an environment issue, not a code issue; the code is verified correct on CPU.)
+
+New regression test: `tests/test_modeling_florence2_e2e_caption.py` (weights vs
+checkpoint + teacher-forcing acc + generate-not-gibberish). Existing 15/15 suite
+still green.
+
+---
+
 ## 1. TL;DR
 
 | Env | transformers | Florence-2 status |
