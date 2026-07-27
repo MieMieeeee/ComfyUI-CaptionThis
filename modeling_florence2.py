@@ -1791,7 +1791,19 @@ class Florence2Decoder(Florence2LanguagePreTrainedModel):
             raise ValueError("You have to specify either decoder_input_ids or decoder_inputs_embeds")
 
         # past_key_values_length
-        past_key_values_length = past_key_values[0][0].shape[2] if past_key_values is not None else 0
+        # NOTE(v9-compat): see Florence2LanguageForConditionalGeneration.prepare_inputs_for_generation.
+        # transformers >= 5.0 wraps past_key_values in EncoderDecoderCache; the legacy
+        # tuple-of-tuples indexing is gone. Use the public get_seq_length() API when
+        # available and fall back to the 4.x tuple format for safety.
+        if past_key_values is not None:
+            if hasattr(past_key_values, "get_seq_length"):
+                past_key_values_length = past_key_values.get_seq_length()
+            elif isinstance(past_key_values, (tuple, list)) and len(past_key_values) > 0 and len(past_key_values[0]) > 0:
+                past_key_values_length = past_key_values[0][0].shape[2]
+            else:
+                past_key_values_length = 0
+        else:
+            past_key_values_length = 0
 
         if inputs_embeds is None:
             inputs_embeds = self.embed_tokens(input)
@@ -1936,11 +1948,15 @@ class Florence2Decoder(Florence2LanguagePreTrainedModel):
 class Florence2LanguageModel(Florence2LanguagePreTrainedModel):
     # NOTE(v9-compat): transformers >= 5.0 changed `_tied_weights_keys` from a flat list
     # to a `dict[target -> source]` mapping. The downstream code in
-    # `PreTrainedModel.get_expanded_tied_weights_keys` does `tied_mapping.keys() |
-    # tied_mapping.values()` and would AttributeError on a list. Convert to dict while
-    # preserving the BART-style tying: decoder.embed_tokens shares weights with the
-    # encoder embeddings.
-    _tied_weights_keys = {"decoder.embed_tokens.weight": "encoder.embed_tokens.weight"}
+    # `PreTrainedModel.mark_tied_weights_as_initialized` does `self.get_parameter(tgt)`
+    # to set the `_is_hf_initialized` flag on each target; paths must be navigable from
+    # `self` of the class they are declared on. Florence2LanguageModel wraps
+    # `self.shared` (the canonical tied-embedding source used by `_tie_weights` here),
+    # so all targets are relative to the language model itself (no `model.` prefix).
+    _tied_weights_keys = {
+        "encoder.embed_tokens.weight": "shared.weight",
+        "decoder.embed_tokens.weight": "shared.weight",
+    }
 
     def __init__(self, config: Florence2LanguageConfig):
         super().__init__(config)
@@ -2063,12 +2079,14 @@ class Florence2LanguageModel(Florence2LanguagePreTrainedModel):
 
 class Florence2LanguageForConditionalGeneration(Florence2LanguagePreTrainedModel, GenerationMixin):
     base_model_prefix = "model"
-    # NOTE(v9-compat): see Florence2LanguageModel -- dict[target -> source] format
-    # required by transformers >= 5.0. lm_head shares weights with encoder embeddings,
-    # matching the BART convention used upstream.
+    # NOTE(v9-compat): see Florence2LanguageModel. Florence2LanguageForConditionalGeneration
+    # wraps the inner BART-like `Florence2LanguageModel` at `self.model` AND owns `self.lm_head`
+    # (Linear) directly. `_tie_weights` ties encoder.embed_tokens, decoder.embed_tokens, and
+    # lm_head all to `self.model.shared` -- preserve that intent in the dict.
     _tied_weights_keys = {
-        "decoder.embed_tokens.weight": "encoder.embed_tokens.weight",
-        "lm_head.weight": "encoder.embed_tokens.weight",
+        "model.encoder.embed_tokens.weight": "model.shared.weight",
+        "model.decoder.embed_tokens.weight": "model.shared.weight",
+        "lm_head.weight": "model.shared.weight",
     }
     _keys_to_ignore_on_load_missing = ["final_logits_bias"]
 
@@ -2209,7 +2227,17 @@ class Florence2LanguageForConditionalGeneration(Florence2LanguagePreTrainedModel
     ):
         # cut decoder_input_ids if past_key_values is used
         if past_key_values is not None:
-            past_length = past_key_values[0][0].shape[2]
+            # NOTE(v9-compat): transformers >= 5.0 wraps past_key_values in
+            # `EncoderDecoderCache` (no longer a list-of-tuples). The legacy
+            # `past_key_values[0][0].shape[2]` access raises TypeError on 5.x.
+            # Use the public `get_seq_length()` API when available; fall back to the
+            # legacy index for the 4.x tuple-of-tuple format (and for None).
+            if hasattr(past_key_values, "get_seq_length"):
+                past_length = past_key_values.get_seq_length()
+            elif isinstance(past_key_values, (tuple, list)) and len(past_key_values) > 0 and len(past_key_values[0]) > 0:
+                past_length = past_key_values[0][0].shape[2]
+            else:
+                past_length = 0
 
             # Some generation methods already pass only the last input ID
             if decoder_input_ids.shape[1] > past_length:
@@ -2548,12 +2576,14 @@ class Florence2VisionModelWithProjection(Florence2PreTrainedModel):
     FLORENCE2_START_DOCSTRING,
 )
 class Florence2ForConditionalGeneration(Florence2PreTrainedModel, GenerationMixin):
-    # NOTE(v9-compat): see Florence2LanguageModel -- dict[target -> source] format
-    # required by transformers >= 5.0. Top-level composite model delegates to
-    # `self.language_model`, so the keys carry the `language_model.` prefix.
+    # NOTE(v9-compat): see Florence2LanguageModel. The top-level composite model has no
+    # own lm_head / shared; tying is delegated through `self.language_model` (which is a
+    # `Florence2LanguageForConditionalGeneration`). Paths here are relative to the top-level
+    # model, so they get the `language_model.` and the inner `model.` (BART wrapper) prefixes.
     _tied_weights_keys = {
-        "language_model.decoder.embed_tokens.weight": "language_model.encoder.embed_tokens.weight",
-        "language_model.lm_head.weight": "language_model.encoder.embed_tokens.weight",
+        "language_model.model.encoder.embed_tokens.weight": "language_model.model.shared.weight",
+        "language_model.model.decoder.embed_tokens.weight": "language_model.model.shared.weight",
+        "language_model.lm_head.weight": "language_model.model.shared.weight",
     }
     def __init__(self, config: Florence2Config):
         super().__init__(config)
@@ -2838,7 +2868,13 @@ class Florence2ForConditionalGeneration(Florence2PreTrainedModel, GenerationMixi
     ):
         # cut decoder_input_ids if past_key_values is used
         if past_key_values is not None:
-            past_length = past_key_values[0][0].shape[2]
+            # NOTE(v9-compat): see Florence2LanguageForConditionalGeneration.prepare_inputs_for_generation
+            if hasattr(past_key_values, "get_seq_length"):
+                past_length = past_key_values.get_seq_length()
+            elif isinstance(past_key_values, (tuple, list)) and len(past_key_values) > 0 and len(past_key_values[0]) > 0:
+                past_length = past_key_values[0][0].shape[2]
+            else:
+                past_length = 0
 
             # Some generation methods already pass only the last input ID
             if decoder_input_ids.shape[1] > past_length:
@@ -2861,8 +2897,8 @@ class Florence2ForConditionalGeneration(Florence2PreTrainedModel, GenerationMixi
             "decoder_head_mask": decoder_head_mask,
             "cross_attn_head_mask": cross_attn_head_mask,
             "use_cache": use_cache,  # change this to avoid caching (presumably for debugging)
-        }
 
+        }
     def prepare_decoder_input_ids_from_labels(self, labels: torch.Tensor):
         return self.language_model.shift_tokens_right(labels)
 
