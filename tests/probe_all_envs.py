@@ -60,6 +60,26 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(3)
 
+# Florence2 path: configuration_florence2 must build Florence2LanguageConfig and
+# Florence2Config(**config_dict with text_config) without raising.
+try:
+    cf = importlib.import_module("configuration_florence2")
+    fc = cf.Florence2LanguageConfig()
+    fbos_attr = getattr(fc, "forced_bos_token_id", None)
+    print(f"  Florence2LanguageConfig().forced_bos_token_id: {fbos_attr}")
+    cfg_dict = {
+        "model_type": "florence2",
+        "projection_dim": 1024,
+        "text_config": {"model_type": "florence2_language", "vocab_size": 51289},
+        "vision_config": {"model_type": "florence2_vision", "dim_embed": [128, 256, 512]},
+    }
+    top = cf.Florence2Config(**cfg_dict)
+    print(f"  Florence2Config(**with text_config) OK; text_config is None? {top.text_config is None}")
+except Exception as e:
+    print(f"  configuration_florence2 FAILED: {type(e).__name__}: {e}")
+    traceback.print_exc()
+    sys.exit(4)
+
 print("RESULT: PASS")
 '''
 

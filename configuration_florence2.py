@@ -262,7 +262,15 @@ class Florence2LanguageConfig(PretrainedConfig):
         )
 
         # ensure backward compatibility for BART CNN models
-        if self.forced_bos_token_id is None and kwargs.get("force_bos_token_to_be_generated", False):
+        # NOTE(v9-compat): transformers >= 5.0 no longer initialises generation
+        # defaults (incl. `forced_bos_token_id`) onto the instance via
+        # `_get_global_generation_defaults()` -- it pops and discards them in
+        # `PretrainedConfig.__post_init__`. Reading `self.forced_bos_token_id`
+        # therefore raises AttributeError on a freshly-built config. Use
+        # getattr with None default so this branch stays a no-op when the
+        # attribute is absent (transformers 4.x still populates it via the
+        # legacy setattr loop, so the branch is also a no-op there).
+        if getattr(self, "forced_bos_token_id", None) is None and kwargs.get("force_bos_token_to_be_generated", False):
             self.forced_bos_token_id = self.bos_token_id
             warnings.warn(
                 f"Please make sure the config includes `forced_bos_token_id={self.bos_token_id}` in future versions. "
