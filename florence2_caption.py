@@ -103,6 +103,17 @@ def describe_single_image(image, model, processor, prompt, device, dtype, num_be
     else:
         inputs = processor(text=prompt, images=pil_image, return_tensors="pt", do_resize=False, do_rescale=False).to(dtype).to(device)
 
+    # NOTE(v9-compat): the Florence-2 / BART-style decoder in this plugin does not
+    # correctly interact with the transformers >= 5.0 `EncoderDecoderCache` API.
+    # The decoder code path was originally written for the 4.x tuple-of-tuples
+    # contract and has not been ported to honour `cache_position` / 4-D attention
+    # masks. Enabling `use_cache=True` on 5.x produces degenerate output (e.g.
+    # one token repeated hundreds of times). The robust workaround is to disable
+    # the cache entirely -- the model produces correct captions at the cost of
+    # O(max_new_tokens) instead of O(1) extra decoder steps. (Round 7+ attempts
+    # at porting to 5.x cache.update() + is_updated dict also produced gibberish;
+    # the cache object mutation interacts poorly with the BART decoder
+    # cache_position expectations.)
     try:
         generated_ids = model.generate(
             input_ids=inputs["input_ids"],
@@ -110,6 +121,7 @@ def describe_single_image(image, model, processor, prompt, device, dtype, num_be
             max_new_tokens=max_new_tokens,
             do_sample=do_sample,
             num_beams=num_beams,
+            use_cache=False,
         )
     except AttributeError as e:
         if "NoneType object has no attribute 'shape'" in str(e) or "NoneType' object has no attribute 'shape'" in str(e):
