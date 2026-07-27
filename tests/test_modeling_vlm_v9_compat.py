@@ -137,6 +137,58 @@ def test_registration_block_executes():
     print("[PASS] test_registration_block_executes")
 
 
+def test_siglip_vit_meta_device_init():
+    """The siglip VisionTransformer must instantiate under the meta-device context
+    that transformers >= 5.0 `from_pretrained` uses.
+
+    Regression for issue #19: the drop-path schedule was computed as
+    `[x.item() for x in torch.linspace(0, drop_path_rate, depth)]`. Calling
+    `.item()` on a meta tensor raises
+    `RuntimeError: Tensor.item() cannot be called on meta tensors` during model
+    loading, crashing Janus load entirely. The fix replaces it with a pure-Python
+    schedule (`drop_path_rate * i / (depth - 1)`) that is numerically identical
+    and touches no tensors during `__init__`.
+    """
+    import torch
+
+    # Force the janus package import so its monkey-patches run.
+    import janus  # noqa: F401
+    siglip = importlib.import_module("janus.models.siglip_vit")
+    VisionTransformer = getattr(siglip, "VisionTransformer")
+    assert VisionTransformer is not None, "VisionTransformer not found in siglip_vit"
+
+    # 1. meta-device instantiation must NOT crash (this is the issue #19 failure).
+    try:
+        with torch.device("meta"):
+            vt = VisionTransformer(
+                img_size=384, patch_size=14, embed_dim=1024,
+                depth=24, num_heads=16, mlp_ratio=4,
+            )
+    except Exception as exc:
+        raise AssertionError(
+            f"VisionTransformer crashed under torch.device('meta') (issue #19 "
+            f"regression): {type(exc).__name__}: {exc}"
+        ) from exc
+    assert len(vt.blocks) == 24, f"expected 24 blocks, got {len(vt.blocks)}"
+
+    # 2. normal instantiation still works and builds the expected structure.
+    vt_real = VisionTransformer(
+        img_size=384, patch_size=14, embed_dim=1024,
+        depth=24, num_heads=16, mlp_ratio=4,
+    )
+    assert len(vt_real.blocks) == 24
+
+    # 3. the dpr schedule is numerically identical to the old linspace form.
+    depth, rate = 24, 0.1
+    old = [x.item() for x in torch.linspace(0, rate, depth)]
+    new = [rate * i / (depth - 1) for i in range(depth)]
+    maxdiff = max(abs(a - b) for a, b in zip(old, new))
+    assert maxdiff < 1e-6, f"dpr schedule diverged from linspace: max|old-new|={maxdiff}"
+
+    print("[PASS] test_siglip_vit_meta_device_init "
+          "(meta init OK, normal init OK, dpr numerically identical)")
+
+
 def main():
     failures = []
     test_funcs = [
@@ -144,6 +196,7 @@ def main():
         test_instantiate_each_config_with_no_kwargs,
         test_instantiate_each_config_with_params_kwarg,
         test_registration_block_executes,
+        test_siglip_vit_meta_device_init,
     ]
     for fn in test_funcs:
         try:

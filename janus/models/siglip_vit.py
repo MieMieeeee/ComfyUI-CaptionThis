@@ -388,8 +388,13 @@ class VisionTransformer(nn.Module):
         self.norm_pre = norm_layer(embed_dim) if pre_norm else nn.Identity()
 
         dpr = [
-            x.item() for x in torch.linspace(0, drop_path_rate, depth)
+            drop_path_rate * i / (depth - 1) for i in range(depth)
         ]  # stochastic depth decay rule
+        # NOTE(v9-compat): pure-Python drop-path schedule. The original
+        # `torch.linspace(...).item()` form touches tensors during `__init__`,
+        # which raises `Tensor.item() cannot be called on meta tensors` when
+        # transformers >= 5.0 instantiates the model on the meta device during
+        # `from_pretrained` (issue #19). Numerically identical to linspace.
         self.blocks = nn.Sequential(
             *[
                 block_fn(
