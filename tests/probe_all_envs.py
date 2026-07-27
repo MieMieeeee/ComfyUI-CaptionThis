@@ -17,14 +17,14 @@ REPO = Path(__file__).resolve().parent.parent
 
 # The inner script is built as a normal string template (NOT an f-string) so that
 # it survives the trip through `python -c <script>` without any interpolation
-# ambiguity. The three {PARENT} / {REPO} / {PLUGIN} placeholders below are
+# ambiguity. The three {PARENT} / C:/Users/administered/PycharmProjects/ComfyUI-CaptionThis / {PLUGIN} placeholders below are
 # substituted via `.format(...)`.
 INNER_SCRIPT_TEMPLATE = r'''
 import sys, importlib, traceback
 print("python:", sys.version.split()[0])
 print("transformers:", __import__("transformers").__version__)
 
-sys.path.insert(0, r"{REPO}")
+sys.path.insert(0, r"C:/Users/administered/PycharmProjects/ComfyUI-CaptionThis")
 plugin_name = "{PLUGIN}"
 sys.path.insert(0, r"{PARENT}")
 
@@ -80,6 +80,33 @@ except Exception as e:
     traceback.print_exc()
     sys.exit(4)
 
+# modeling_florence2 path: the 3 PreTrainedModel subclasses must declare
+# `_tied_weights_keys` as a `dict[target -> source]` (transformers >= 5.0).
+# List form raises AttributeError in PreTrainedModel.post_init() during model load.
+try:
+    import importlib.util, os, types
+    PKG = "_florence2_probe_synthetic"
+    for n in list(sys.modules):
+        if n == PKG or n.startswith(PKG + "."):
+            sys.modules.pop(n, None)
+    pkg = types.ModuleType(PKG)
+    pkg.__path__ = [r"C:/Users/administered/PycharmProjects/ComfyUI-CaptionThis"]
+    sys.modules[PKG] = pkg
+    for sub in ("configuration_florence2", "modeling_florence2"):
+        spec = importlib.util.spec_from_file_location(f"{PKG}.{sub}", os.path.join(r"C:/Users/administered/PycharmProjects/ComfyUI-CaptionThis", f"{sub}.py"))
+        m = importlib.util.module_from_spec(spec)
+        sys.modules[f"{PKG}.{sub}"] = m
+        spec.loader.exec_module(m)
+    mf = sys.modules[f"{PKG}.modeling_florence2"]
+    for cname in ("Florence2LanguageModel", "Florence2LanguageForConditionalGeneration", "Florence2ForConditionalGeneration"):
+        v = getattr(getattr(mf, cname), "_tied_weights_keys", None)
+        assert isinstance(v, dict), f"{cname}._tied_weights_keys is {type(v).__name__}, expected dict"
+    print(f"  modeling_florence2 _tied_weights_keys: 3/3 classes are dicts")
+except Exception as e:
+    print(f"  modeling_florence2 FAILED: {type(e).__name__}: {e}")
+    traceback.print_exc()
+    sys.exit(5)
+
 print("RESULT: PASS")
 '''
 
@@ -108,7 +135,7 @@ ENVS = [
 
 def run_env(env):
     inner = (INNER_SCRIPT_TEMPLATE
-             .replace("{REPO}", str(REPO))
+             .replace("C:/Users/administered/PycharmProjects/ComfyUI-CaptionThis", str(REPO))
              .replace("{PARENT}", env["parent"])
              .replace("{PLUGIN}", env["plugin"]))
     print("=" * 80)

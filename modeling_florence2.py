@@ -1934,7 +1934,13 @@ class Florence2Decoder(Florence2LanguagePreTrainedModel):
 
 
 class Florence2LanguageModel(Florence2LanguagePreTrainedModel):
-    _tied_weights_keys = ["encoder.embed_tokens.weight", "decoder.embed_tokens.weight"]
+    # NOTE(v9-compat): transformers >= 5.0 changed `_tied_weights_keys` from a flat list
+    # to a `dict[target -> source]` mapping. The downstream code in
+    # `PreTrainedModel.get_expanded_tied_weights_keys` does `tied_mapping.keys() |
+    # tied_mapping.values()` and would AttributeError on a list. Convert to dict while
+    # preserving the BART-style tying: decoder.embed_tokens shares weights with the
+    # encoder embeddings.
+    _tied_weights_keys = {"decoder.embed_tokens.weight": "encoder.embed_tokens.weight"}
 
     def __init__(self, config: Florence2LanguageConfig):
         super().__init__(config)
@@ -2057,7 +2063,13 @@ class Florence2LanguageModel(Florence2LanguagePreTrainedModel):
 
 class Florence2LanguageForConditionalGeneration(Florence2LanguagePreTrainedModel, GenerationMixin):
     base_model_prefix = "model"
-    _tied_weights_keys = ["encoder.embed_tokens.weight", "decoder.embed_tokens.weight", "lm_head.weight"]
+    # NOTE(v9-compat): see Florence2LanguageModel -- dict[target -> source] format
+    # required by transformers >= 5.0. lm_head shares weights with encoder embeddings,
+    # matching the BART convention used upstream.
+    _tied_weights_keys = {
+        "decoder.embed_tokens.weight": "encoder.embed_tokens.weight",
+        "lm_head.weight": "encoder.embed_tokens.weight",
+    }
     _keys_to_ignore_on_load_missing = ["final_logits_bias"]
 
     def __init__(self, config: Florence2LanguageConfig):
@@ -2536,7 +2548,13 @@ class Florence2VisionModelWithProjection(Florence2PreTrainedModel):
     FLORENCE2_START_DOCSTRING,
 )
 class Florence2ForConditionalGeneration(Florence2PreTrainedModel, GenerationMixin):
-    _tied_weights_keys = ["language_model.encoder.embed_tokens.weight", "language_model.decoder.embed_tokens.weight", "language_model.lm_head.weight"]
+    # NOTE(v9-compat): see Florence2LanguageModel -- dict[target -> source] format
+    # required by transformers >= 5.0. Top-level composite model delegates to
+    # `self.language_model`, so the keys carry the `language_model.` prefix.
+    _tied_weights_keys = {
+        "language_model.decoder.embed_tokens.weight": "language_model.encoder.embed_tokens.weight",
+        "language_model.lm_head.weight": "language_model.encoder.embed_tokens.weight",
+    }
     def __init__(self, config: Florence2Config):
         super().__init__(config)
         assert config.vision_config.model_type == 'davit', 'only DaViT is supported for now'
