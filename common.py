@@ -9,6 +9,18 @@ from nodes import node_helpers, ImageSequence, ImageOps
 from .utils import mie_log
 
 
+# Image extensions we consider valid inputs for batch captioning. Filtering by
+# extension first (instead of opening every file with PIL) is dramatically faster
+# and far more robust on network mounts (NFS/SMB) and inside containers, where
+# directories routinely contain `.DS_Store`, `Thumbs.db`, partial transfers, and
+# other non-image entries that would otherwise each trigger a slow `Image.open`.
+# This is the root cause of issue #13 ("Cannot figure out path format (linux)"):
+# the directory was reachable but the per-file probe failed/slowed on mixed content.
+IMAGE_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif", ".tif", ".tiff",
+}
+
+
 # From ComfyUI Core
 def load_image_core(image_path):
     img = node_helpers.pillow(Image.open, image_path)
@@ -66,12 +78,44 @@ def is_image_file(file_path):
     try:
         with Image.open(file_path) as img:
             return img.format is not None  # Returns True if the image format is valid
-    except (IOError, FileNotFoundError):
+    except (IOError, FileNotFoundError, Image.UnidentifiedImageError, ValueError):
         return False
 
 
+def normalize_directory_path(directory):
+    """Normalize a user-supplied directory path.
+
+    Handles the common copy-paste / cross-platform pitfalls that caused
+    issue #13: leading/trailing whitespace, a leading ``~`` (POSIX home),
+    mixed separators, and a trailing separator. Returns the cleaned path
+    (without resolving symlinks, so NFS mounts are left as-is).
+    """
+    if directory is None:
+        return directory
+    directory = directory.strip()
+    directory = os.path.expanduser(directory)
+    directory = os.path.normpath(directory)
+    return directory
+
+
 def get_image_files(directory):
-    return [f for f in glob(os.path.join(directory, "*")) if os.path.isfile(f) and is_image_file(f)]
+    """Return the list of image files in ``directory`` (non-recursive).
+
+    Filters by extension first (fast, robust on network mounts), then drops
+    anything that is not a regular file. We intentionally do NOT call
+    ``Image.open`` per file here -- on NFS/SMB a directory may contain
+    non-image entries (``.DS_Store``, partial transfers, etc.) and probing
+    each one is both slow and a source of cryptic failures. Extension
+    filtering matches how other ComfyUI image nodes behave.
+    """
+    entries = glob(os.path.join(directory, "*"))
+    image_files = []
+    for f in entries:
+        if not os.path.isfile(f):
+            continue
+        if os.path.splitext(f)[1].lower() in IMAGE_EXTENSIONS:
+            image_files.append(f)
+    return image_files
 
 
 def save_description(image_file, description, directory_to_save=None):
@@ -90,9 +134,40 @@ def describe_images_core(directory, save_to_new_directory, new_directory, descri
     if not save_to_new_directory:
         new_directory = None
 
-    image_files = get_image_files(directory)
+    # Distinguish the three real failure modes so the user gets an actionable
+    # message instead of a generic "no images". Issue #13 was unresolvable
+    # largely because the error gave no clue which of these it was.
+    if not os.path.exists(directory):
+        return (
+            f"Directory does not exist: {directory!r}. Check the path spelling, "
+            f"that the mount is active, and (if it is relative to ComfyUI) enable "
+            f"the 'is_relative_path' option or pass an absolute path."
+        ),
+    if not os.path.isdir(directory):
+        return f"Path is not a directory: {directory!r} (it is a file).",
+
+    try:
+        image_files = get_image_files(directory)
+    except PermissionError:
+        return (
+            f"Permission denied reading directory: {directory!r}. Check that the "
+            f"ComfyUI process has read access to it (common inside Docker / on NFS)."
+        ),
+
     if not image_files:
-        return f"No image files found in the {directory}.",
+        # Help the user see WHY nothing was found: list what is actually there.
+        try:
+            all_entries = [os.path.basename(p) for p in glob(os.path.join(directory, "*"))]
+        except Exception:
+            all_entries = []
+        exts_seen = sorted({os.path.splitext(p)[1].lower() for p in all_entries if os.path.splitext(p)[1]})
+        sample = ", ".join(all_entries[:5])
+        hint_exts = ", ".join(sorted(IMAGE_EXTENSIONS))
+        return (
+            f"No image files found in {directory!r}. Found {len(all_entries)} entries "
+            f"with extensions: [{exts_seen}]. Only these extensions are recognized: "
+            f"[{hint_exts}]. Sample entries: {sample}"
+        ),
 
     for image_file in image_files:
         image = load_image_core(image_file)[0]

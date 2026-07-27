@@ -14,7 +14,7 @@ from transformers.dynamic_module_utils import get_imports
 
 import folder_paths
 import comfy.model_management as mm
-from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image
+from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image, normalize_directory_path
 
 import transformers
 
@@ -300,6 +300,11 @@ class Florence2CaptionImageUnderDirectory:
         if is_relative_path:
             directory = os.path.join(folder_paths.base_path, directory)
             save_directory = os.path.join(folder_paths.base_path, save_directory) if save_directory else None
+        # Normalize whatever the user typed (strip whitespace, expand ~, drop
+        # trailing separator) so copy-pasted / POSIX paths resolve cleanly.
+        directory = normalize_directory_path(directory)
+        if save_directory:
+            save_directory = normalize_directory_path(save_directory)
 
         mie_log(
             f"Describing images in {directory} and save to {save_directory if save_to_new_directory else directory}")
