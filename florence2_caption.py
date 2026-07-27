@@ -82,8 +82,26 @@ def describe_single_image(image, model, processor, prompt, device, dtype, num_be
     # 转换为PIL图像
     pil_image = image_to_pil_image(image)
 
-    inputs = processor(text=prompt, images=pil_image, return_tensors="pt", do_rescale=False).to(dtype).to(
-        device)
+    # transformers >= 5.0 no longer pulls `do_resize` / `size` / `resample`
+    # from the preprocessor config defaults. The Florence2Processor wrapper
+    # does NOT forward a `size=` kwarg to its image_processor, so passing
+    # `size` here raises TypeError. The robust fix is to resize the PIL
+    # image ourselves before handing it to the processor (with
+    # `do_resize=False` to prevent the image_processor from re-applying its
+    # own broken resize path). The DaViT vision tower requires square
+    # feature maps; non-square inputs are rejected with
+    # "only support square feature maps for now" in `_encode_image`.
+    img_proc = getattr(processor, "image_processor", None)
+    if img_proc is not None and getattr(img_proc, "do_resize", True):
+        proc_size = dict(img_proc.size) if hasattr(img_proc.size, "__getitem__") else img_proc.size
+        proc_resample = getattr(img_proc, "resample", 3)
+        target_h = int(proc_size.get("height", 768))
+        target_w = int(proc_size.get("width", 768))
+        if pil_image.size != (target_w, target_h):
+            pil_image = pil_image.resize((target_w, target_h), resample=proc_resample)
+        inputs = processor(text=prompt, images=pil_image, return_tensors="pt", do_resize=False, do_rescale=False).to(dtype).to(device)
+    else:
+        inputs = processor(text=prompt, images=pil_image, return_tensors="pt", do_resize=False, do_rescale=False).to(dtype).to(device)
 
     try:
         generated_ids = model.generate(
