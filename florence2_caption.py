@@ -14,7 +14,7 @@ from transformers.dynamic_module_utils import get_imports
 
 import folder_paths
 import comfy.model_management as mm
-from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image, normalize_directory_path
+from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image, normalize_directory_path, assert_model_complete
 
 import transformers
 
@@ -194,6 +194,13 @@ class Florence2ModelLoader:
             snapshot_download(repo_id=model_name,
                               local_dir=model_path,
                               local_dir_use_symlinks=False)
+
+        # Guard against a partially-downloaded model (e.g. only model.safetensors
+        # present, config.json missing). Without this, loading fails with a
+        # cryptic "'NoneType' object has no attribute 'model_type'".
+        assert_model_complete(model_path, repo_id=model_name,
+                              required_files=("config.json", "configuration_florence2.py",
+                                              "modeling_florence2.py", "tokenizer.json"))
 
         mie_log(f"Florence2 using {attention} for attention")
 

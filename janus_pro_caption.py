@@ -8,7 +8,7 @@ import folder_paths
 import comfy.model_management as mm
 
 from .janus.models import VLChatProcessor
-from .common import describe_images_core, image_to_pil_image, normalize_directory_path
+from .common import describe_images_core, image_to_pil_image, normalize_directory_path, assert_model_complete
 from .utils import mie_log
 
 MY_CATEGORY = "🐑 JanusProCaption"
@@ -44,6 +44,12 @@ class JanusProModelLoader:
             mie_log(f"Local model {model_name} not found at {the_model_path}, download from huggingface")
             from huggingface_hub import snapshot_download
             snapshot_download(repo_id=model_name, local_dir=the_model_path, local_dir_use_symlinks=False)
+
+        # Guard against a partially-downloaded model (e.g. only the .safetensors
+        # present, config.json missing) before attempting to load.
+        assert_model_complete(the_model_path, repo_id=model_name,
+                              required_files=("config.json", "tokenizer.json"))
+
         model = AutoModelForCausalLM.from_pretrained(
             the_model_path,
             trust_remote_code=True

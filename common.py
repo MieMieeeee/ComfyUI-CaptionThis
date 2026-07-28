@@ -98,6 +98,37 @@ def normalize_directory_path(directory):
     return directory
 
 
+def assert_model_complete(model_path, repo_id=None, required_files=("config.json",)):
+    """Verify a downloaded model directory actually contains the files needed
+    to load, not just the weights.
+
+    A known failure mode (seen on a LAN V9 deploy): ``snapshot_download`` wrote
+    ``model.safetensors`` (1GB) but the small text files (``config.json``,
+    tokenizer, modeling code) were never written -- e.g. interrupted download
+    or partial network failure. Loading then fails with a cryptic
+    ``'NoneType' object has no attribute 'model_type'`` because transformers
+    falls back to an empty default config. This raises a clear, actionable
+    error instead.
+
+    Parameters:
+    - model_path: the local directory the model was downloaded into.
+    - repo_id: original HF repo id, included in the message to help re-download.
+    - required_files: files that MUST be present. ``config.json`` is the
+      minimum; callers can add more (e.g. tokenizer files).
+    """
+    missing = [f for f in required_files if not os.path.exists(os.path.join(model_path, f))]
+    if not missing:
+        return
+    where = f" from '{repo_id}'" if repo_id else ""
+    raise FileNotFoundError(
+        f"Model directory is incomplete{where}: {model_path!r}\n"
+        f"Missing required file(s): {missing}.\n"
+        f"This usually means a previous download was interrupted. Please delete "
+        f"the directory (and its .cache) and let the node re-download, or copy "
+        f"the full model files from a known-good source."
+    )
+
+
 def get_image_files(directory):
     """Return the list of image files in ``directory`` (non-recursive).
 
