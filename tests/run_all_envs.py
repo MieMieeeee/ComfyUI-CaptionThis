@@ -21,12 +21,29 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 TESTS = REPO / "tests"
 
-# Each env is one row: (label, python_exe).
+# Each env is one row: (short_name, python_exe). The transformers version in the
+# label is probed at runtime (see _probe_version) so the matrix output always
+# reports the version actually installed in each interpreter -- a stale
+# hard-coded version label previously misrepresented 4.56.2 envs as 5.9.0.
 ENVS = [
-    ("V8.0 (transformers 4.56.2)", r"E:\FF\ComfyUI_Mie_2026_V8.0\python_embeded\python.exe"),
-    ("V9.0 (transformers 5.9.0)", r"E:\HH\Package\ComfyUI_Mie_2026_V9.0\python_embeded\python.exe"),
-    ("V9.0_cu126 (transformers 5.9.0)", r"E:\HH\Package\ComfyUI_Mie_2026_V9.0_cu126\python_embeded\python.exe"),
+    ("V8.0", r"E:\FF\ComfyUI_Mie_2026_V8.0\python_embeded\python.exe"),
+    ("V9.0", r"E:\HH\Package\ComfyUI_Mie_2026_V9.0\python_embeded\python.exe"),
+    ("V9.0_cu126", r"E:\HH\Package\ComfyUI_Mie_2026_V9.0_cu126\python_embeded\python.exe"),
 ]
+
+
+def _probe_version(py):
+    """Return the transformers version string installed in the given interpreter,
+    or '<unknown>' if it cannot be determined (e.g. transformers not installed)."""
+    try:
+        proc = subprocess.run(
+            [py, "-c", "import transformers; print(transformers.__version__)"],
+            capture_output=True, text=True, timeout=30,
+        )
+        ver = proc.stdout.strip()
+        return ver or "<unknown>"
+    except Exception:
+        return "<unknown>"
 
 # Each test is a column: (rel_path, env-specific overrides dict).
 # We do not have env-specific overrides, so the test files are environment-agnostic.
@@ -50,10 +67,13 @@ def run(py, test_path, timeout=180):
 
 def main():
     matrix = {}
-    for env_label, py in ENVS:
+    for short_name, py in ENVS:
         if not os.path.exists(py):
-            print(f"SKIP {env_label}: python not found at {py}")
+            print(f"SKIP {short_name}: python not found at {py}")
             continue
+        # Probe the real installed version so the matrix label never lies.
+        ver = _probe_version(py)
+        env_label = f"{short_name} (transformers {ver})"
         row = {}
         for t in TEST_FILES:
             tpath = TESTS / t

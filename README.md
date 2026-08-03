@@ -8,6 +8,7 @@
 
 ## Important Updates
 
+* **2026/08/03**: Fixed **Florence2** load crash on **transformers 5.x** — `AttributeError: 'Florence2LanguageConfig' object has no attribute 'forced_bos_token_id'` (#21). Root cause: the processor was loaded via `AutoProcessor`, which fell back to the model repo's remote `configuration_florence2.py` and hit an unguarded attribute read that 5.x no longer populates. The processor is now assembled explicitly (`CLIPImageProcessor` + `BartTokenizerFast` + dynamically-loaded `Florence2Processor`), bypassing the dangerous `AutoProcessor → AutoConfig` chain on both 4.x and 5.x. Also completed the **Janus** dataclass fix for the remaining `janusflow` config classes (#22). Added a dual-version (transformers 4.49 / 4.57 / 5.9) test matrix.
 * **2026/07/27**: Fixed **Florence2** producing gibberish instead of real captions on **transformers 5.x** (V9). Root cause: the BART encoder/decoder weights were silently re-randomized during meta-device loading. Also fixed the **Janus Pro** load crash (`Tensor.item() cannot be called on meta tensors`, #19) and the **directory batch mode** failing to find image folders on Linux / NFS / Docker (#13). Recommended for everyone on a 5.x environment.
 * **2025/02/16**: Added support for the **Florence2** model.
 * **2025/02/15**: Added support for the **Janus Pro** model.

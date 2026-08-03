@@ -6,7 +6,7 @@ import numpy as np
 
 from PIL import Image
 from pathlib import Path
-from transformers import AutoModelForCausalLM, AutoProcessor, set_seed
+from transformers import AutoModelForCausalLM, set_seed
 
 # workaround for unnecessary flash_attn requirement
 from unittest.mock import patch
@@ -15,6 +15,7 @@ from transformers.dynamic_module_utils import get_imports
 import folder_paths
 import comfy.model_management as mm
 from .common import hash_seed, mie_log, describe_images_core, image_to_pil_image, normalize_directory_path, assert_model_complete
+from .florence2_processor import load_florence2_processor
 
 import transformers
 
@@ -210,7 +211,13 @@ class Florence2ModelLoader:
         else:
             from .modeling_florence2 import Florence2ForConditionalGeneration
             model = Florence2ForConditionalGeneration.from_pretrained(model_path, attn_implementation=attention, torch_dtype=dtype)
-        processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
+        # Build the processor explicitly (CLIPImageProcessor + BartTokenizerFast +
+        # dynamically-loaded Florence2Processor) instead of AutoProcessor.
+        # AutoProcessor -> ProcessorMixin.from_pretrained -> _get_arguments_from_pretrained
+        # re-dispatches through AutoConfig and, on transformers 5.x, re-triggers the
+        # remote configuration_florence2.py bug (forced_bos_token_id AttributeError,
+        # Issue #21). See florence2_processor.py for the full rationale.
+        processor = load_florence2_processor(model_path)
 
         florence2_model = {
             'model': model,

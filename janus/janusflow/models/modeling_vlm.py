@@ -51,7 +51,6 @@ def model_name_to_cls(cls_name):
 class VisionUnderstandEncoderConfig(PretrainedConfig):
     model_type = "vision_und_enc"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -66,7 +65,6 @@ class VisionUnderstandEncoderConfig(PretrainedConfig):
 class VisionGenerationEncoderConfig(PretrainedConfig):
     model_type = "vision_gen_enc"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -81,7 +79,6 @@ class VisionGenerationEncoderConfig(PretrainedConfig):
 class VisionGenerationDecoderConfig(PretrainedConfig):
     model_type = "vision_gen_dec"
     cls: str = ""
-    params: AttrDict = {}
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

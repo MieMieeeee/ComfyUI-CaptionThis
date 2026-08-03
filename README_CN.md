@@ -8,6 +8,7 @@
 
 ## 重要更新
 
+* **2026/08/03**: 修复了 **Florence2** 在 **transformers 5.x** 下加载崩溃的问题 —— `AttributeError: 'Florence2LanguageConfig' object has no attribute 'forced_bos_token_id'`（#21）。根因：processor 通过 `AutoProcessor` 加载时，会回退到模型仓库自带的 remote `configuration_florence2.py`，触发了 5.x 不再填充的裸属性读取。现在改为显式组装 processor（`CLIPImageProcessor` + `BartTokenizerFast` + 动态加载的 `Florence2Processor`），在 4.x 和 5.x 上都绕开了危险的 `AutoProcessor → AutoConfig` 链路。同时补全了 **Janus** 剩余 `janusflow` 配置类的 dataclass 修复（#22）。新增双版本（transformers 4.49 / 4.57 / 5.9）测试矩阵。
 * **2026/07/27**: 修复了 **Florence2** 在 **transformers 5.x**(V9)环境下输出乱码而非真实描述的问题(根因:meta-device 加载时 BART 编解码器权重被静默重置为随机值)。同时修复了 **Janus Pro** 加载崩溃(`Tensor.item() cannot be called on meta tensors`,#19)以及**目录批量模式**在 Linux / NFS / Docker 下找不到图片文件夹的问题(#13)。使用 5.x 环境的用户强烈建议更新。
 * **2025/02/16**: 增加了对 **Florence2** 模型的支持。
 * **2025/02/15**: 增加了对 **Janus Pro** 模型的支持。

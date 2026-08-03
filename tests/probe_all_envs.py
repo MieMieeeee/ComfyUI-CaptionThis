@@ -113,19 +113,19 @@ print("RESULT: PASS")
 
 ENVS = [
     {
-        "label": "V8.0 (transformers 4.56.2, attrdict installed)",
+        "label": "V8.0 (attrdict installed)",
         "py": r"E:\FF\ComfyUI_Mie_2026_V8.0\python_embeded\python.exe",
         "parent": r"E:\FF\ComfyUI_Mie_2026_V8.0\ComfyUI\custom_nodes",
         "plugin": "ComfyUI-CaptionThis",
     },
     {
-        "label": "V9.0 (transformers 5.9.0, attrdict installed)",
+        "label": "V9.0 (attrdict installed)",
         "py": r"E:\HH\Package\ComfyUI_Mie_2026_V9.0\python_embeded\python.exe",
         "parent": r"E:\HH\Package\ComfyUI_Mie_2026_V9.0\ComfyUI\custom_nodes",
         "plugin": "comfyui_caption_this",
     },
     {
-        "label": "V9.0_cu126 (transformers 5.9.0, attrdict installed)",
+        "label": "V9.0_cu126 (attrdict installed)",
         "py": r"E:\HH\Package\ComfyUI_Mie_2026_V9.0_cu126\python_embeded\python.exe",
         "parent": r"E:\HH\Package\ComfyUI_Mie_2026_V9.0_cu126\ComfyUI\custom_nodes",
         "plugin": "comfyui_caption_this",
@@ -133,13 +133,32 @@ ENVS = [
 ]
 
 
+def _probe_version(py):
+    """Return the transformers version actually installed in ``py``, or
+    '<unknown>'. Used so probe output never misreports the tested version (a
+    stale hard-coded label previously showed 4.56.2 envs as 5.9.0)."""
+    try:
+        proc = subprocess.run(
+            [py, "-c", "import transformers; print(transformers.__version__)"],
+            capture_output=True, text=True, timeout=30,
+        )
+        ver = proc.stdout.strip()
+        return ver or "<unknown>"
+    except Exception:
+        return "<unknown>"
+
+
 def run_env(env):
     inner = (INNER_SCRIPT_TEMPLATE
              .replace("C:/Users/administered/PycharmProjects/ComfyUI-CaptionThis", str(REPO))
              .replace("{PARENT}", env["parent"])
              .replace("{PLUGIN}", env["plugin"]))
+    # Probe the real installed version so the printed label always matches what
+    # is actually under test.
+    ver = _probe_version(env["py"])
+    label = f"{env['label']} -> transformers {ver}"
     print("=" * 80)
-    print(f"Running env probe: {env['label']}")
+    print(f"Running env probe: {label}")
     print("=" * 80)
     proc = subprocess.run(
         [env["py"], "-c", inner],
