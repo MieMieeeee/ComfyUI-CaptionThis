@@ -184,7 +184,8 @@ def test_weights_match_checkpoint():
         rp = raw[name].to(p.device).to(p.dtype)
         if rp.shape != p.shape:
             continue
-        lp = p.float().flatten(); rp_f = rp.float().flatten()
+        lp = p.float().flatten()
+        rp_f = rp.float().flatten()
         cos = torch.dot(lp, rp_f).item() / (lp.norm().item() * rp_f.norm().item() + 1e-9)
         # Before the fix: cos ~ 0 (uncorrelated random). After: cos ~ 1.0.
         # Threshold 0.5 is very lenient (real values are >0.99 or ==1.0).

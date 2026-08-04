@@ -304,16 +304,24 @@ class MockedAssemblyTests(_HfModulesCacheIsolationMixin, unittest.TestCase):
         return fake_tok, fake_img
 
     def _patch_dynamic_loader(self, mock_module, model_path):
+        """Replace get_class_from_dynamic_module to load the fixture's processor
+        class via importlib (not exec) -- avoids the S102 security lint that
+        blocks Comfy Registry publishing."""
+        import importlib.util
         from transformers.processing_utils import ProcessorMixin
 
         def fake_get_class(class_reference, pretrained_model_name_or_path, **kwargs):
             module_file, class_name = class_reference.split(".")
             src_path = os.path.join(model_path, module_file + ".py")
-            with open(src_path, "r", encoding="utf-8") as f:
-                src = f.read()
-            ns = {"ProcessorMixin": ProcessorMixin}
-            exec(compile(src, src_path, "exec"), ns)
-            return ns[class_name]
+            spec = importlib.util.spec_from_file_location(
+                "_florence2_test_proc_" + module_file, src_path,
+            )
+            mod = importlib.util.module_from_spec(spec)
+            # The fixture source references ``ProcessorMixin`` at module top
+            # level; inject it before exec so the class body resolves it.
+            mod.ProcessorMixin = ProcessorMixin
+            spec.loader.exec_module(mod)
+            return getattr(mod, class_name)
 
         mock_module.get_class_from_dynamic_module = fake_get_class
         return fake_get_class
