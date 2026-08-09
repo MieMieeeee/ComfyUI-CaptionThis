@@ -1,4 +1,4 @@
-"""Florence2 processor loader that bypasses the AutoProcessor -> AutoConfig chain.
+﻿"""Florence2 processor loader that bypasses the AutoProcessor -> AutoConfig chain.
 
 Why this exists
 ---------------
@@ -117,13 +117,13 @@ def load_florence2_processor(model_path):
         )
 
     # Step 2: image processor -- no AutoConfig involvement, always safe.
-    image_processor = CLIPImageProcessor.from_pretrained(model_path)
+    image_processor = CLIPImageProcessor.from_pretrained(model_path)  # nosec B615
 
     # Step 3: tokenizer. Florence-2 repos' tokenizer_config.json declares
     # ``tokenizer_class: BartTokenizerFast``, so the tokenizer loader resolves
     # the class directly and never falls back to AutoConfig.from_pretrained (the
     # fallback that would re-trigger the remote config).
-    tokenizer = BartTokenizerFast.from_pretrained(model_path)
+    tokenizer = BartTokenizerFast.from_pretrained(model_path)  # nosec B615
 
     # Step 4: load the processor *class* (not an instance) and construct it
     # directly. This skips ProcessorMixin.from_pretrained, which would otherwise
